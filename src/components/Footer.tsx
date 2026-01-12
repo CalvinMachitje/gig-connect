@@ -1,4 +1,4 @@
-import { Facebook, Twitter, Instagram, Linkedin, Youtube } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Youtube, Users } from "lucide-react";
 
 const footerLinks = {
   categories: [
@@ -36,23 +36,25 @@ const socialLinks = [
 
 const Footer = () => {
   return (
-    <footer className="bg-foreground text-muted pt-16 pb-8">
+    <footer className="bg-card border-t border-border pt-16 pb-8">
       <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           <div>
-            <a href="/" className="flex items-center gap-1 mb-6">
-              <span className="text-2xl font-bold text-primary">D's</span>
-              <span className="text-2xl font-bold text-background">Virtual Space</span>
+            <a href="/" className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-primary rounded-lg">
+                <Users className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-bold text-foreground">D's Virtual Space</span>
             </a>
-            <p className="text-sm text-muted/80 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               The world's largest marketplace for digital services. Find the perfect freelancer for your project.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               {socialLinks.map((social, index) => (
                 <a
                   key={index}
                   href={social.href}
-                  className="w-10 h-10 rounded-full bg-muted/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors text-muted-foreground"
                 >
                   <social.icon className="h-5 w-5" />
                 </a>
@@ -61,11 +63,11 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-background mb-6">Categories</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-6">Categories</h3>
             <ul className="space-y-3">
               {footerLinks.categories.map((link) => (
                 <li key={link}>
-                  <a href="#" className="text-sm text-muted/80 hover:text-primary transition-colors">
+                  <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {link}
                   </a>
                 </li>
@@ -74,11 +76,11 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-background mb-6">About</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-6">About</h3>
             <ul className="space-y-3">
               {footerLinks.about.map((link) => (
                 <li key={link}>
-                  <a href="#" className="text-sm text-muted/80 hover:text-primary transition-colors">
+                  <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {link}
                   </a>
                 </li>
@@ -87,11 +89,11 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-background mb-6">Support</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-6">Support</h3>
             <ul className="space-y-3">
               {footerLinks.support.map((link) => (
                 <li key={link}>
-                  <a href="#" className="text-sm text-muted/80 hover:text-primary transition-colors">
+                  <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {link}
                   </a>
                 </li>
@@ -100,15 +102,15 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-muted/20 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted/60">
+        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground">
             © 2026 D's Virtual Space. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-muted/60 hover:text-primary transition-colors">
+            <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Accessibility
             </a>
-            <a href="#" className="text-sm text-muted/60 hover:text-primary transition-colors">
+            <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Cookie Settings
             </a>
           </div>

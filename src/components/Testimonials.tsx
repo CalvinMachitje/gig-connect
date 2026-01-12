@@ -5,7 +5,7 @@ const testimonials = [
     name: "Jennifer Smith",
     role: "CEO, TechStart Inc.",
     image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&face",
-    content: "SkillHub transformed our business. We found amazing developers who delivered beyond our expectations. The platform made the entire process seamless.",
+    content: "D's Virtual Space transformed our business. We found amazing developers who delivered beyond our expectations. The platform made the entire process seamless.",
     rating: 5,
   },
   {
@@ -26,7 +26,7 @@ const testimonials = [
 
 const Testimonials = () => {
   return (
-    <section className="py-16 md:py-24">
+    <section className="py-16 md:py-24 bg-background">
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -41,9 +41,9 @@ const Testimonials = () => {
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className="relative bg-card rounded-2xl border border-border p-8 shadow-card hover:shadow-card-hover transition-all duration-300"
+              className="relative bg-card rounded-2xl border border-border p-8 shadow-card hover:shadow-card-hover hover:border-primary/50 transition-all duration-300"
             >
-              <Quote className="absolute top-6 right-6 h-8 w-8 text-primary/20" />
+              <Quote className="absolute top-6 right-6 h-8 w-8 text-primary/30" />
               
               <div className="flex gap-1 mb-4">
                 {[...Array(testimonial.rating)].map((_, i) => (
