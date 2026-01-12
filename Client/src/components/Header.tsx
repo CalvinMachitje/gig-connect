@@ -1,70 +1,167 @@
+// File: Client/src/components/Header.tsx
 import { useState } from "react";
+import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Users } from "lucide-react";
+import { cn } from "@/lib/utils"; // Assuming you have cn from class-variance-authority (common with shadcn)
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Close mobile menu when clicking a link
+  const closeMenu = () => setIsMenuOpen(false);
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
-          <a href="/" className="flex items-center gap-3">
-            <div className="p-2 bg-primary rounded-lg">
-              <Users className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">D's Virtual Space</span>
-          </a>
-          
-          <nav className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Explore
-            </a>
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Become a Seller
-            </a>
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Business
-            </a>
-          </nav>
+    <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-slate-950/80">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-105">
+          <div className="p-2.5 bg-blue-600/20 rounded-lg border border-blue-500/20">
+            <Users className="h-6 w-6 text-blue-500" />
+          </div>
+          <span className="text-xl font-bold text-white tracking-tight">
+            D's Virtual Space
+          </span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-8">
+          <NavLink
+            to="/explore"
+            className={({ isActive }) =>
+              cn(
+                "text-sm font-medium transition-colors",
+                isActive
+                  ? "text-blue-400"
+                  : "text-slate-400 hover:text-slate-200"
+              )
+            }
+          >
+            Explore
+          </NavLink>
+
+          <NavLink
+            to="/become-seller"
+            className={({ isActive }) =>
+              cn(
+                "text-sm font-medium transition-colors",
+                isActive
+                  ? "text-blue-400"
+                  : "text-slate-400 hover:text-slate-200"
+              )
+            }
+          >
+            Become a Seller
+          </NavLink>
+
+          <NavLink
+            to="/business"
+            className={({ isActive }) =>
+              cn(
+                "text-sm font-medium transition-colors",
+                isActive
+                  ? "text-blue-400"
+                  : "text-slate-400 hover:text-slate-200"
+              )
+            }
+          >
+            Business
+          </NavLink>
+        </nav>
+
+        {/* Desktop Auth Buttons */}
+        <div className="hidden md:flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="text-slate-300 hover:text-white hover:bg-slate-800/50"
+          >
+            <Link to="/Login_Page">Sign In</Link>
+          </Button>
+
+          <Button
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+            asChild
+          >
+            <Link to="/Signup_Page">Join</Link>
+          </Button>
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            Sign In
-          </Button>
-          <Button size="sm">
-            Join
-          </Button>
-        </div>
-
+        {/* Mobile Menu Toggle */}
         <button
-          className="md:hidden p-2"
+          className="md:hidden p-2 rounded-md hover:bg-slate-800/50 transition-colors"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
         >
-          {isMenuOpen ? <X className="h-6 w-6 text-foreground" /> : <Menu className="h-6 w-6 text-foreground" />}
+          {isMenuOpen ? (
+            <X className="h-6 w-6 text-slate-200" />
+          ) : (
+            <Menu className="h-6 w-6 text-slate-200" />
+          )}
         </button>
       </div>
 
+      {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="md:hidden border-t border-border bg-background p-4">
-          <nav className="flex flex-col gap-4">
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+        <div className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-lg animate-in slide-in-from-top-5 fade-in-20">
+          <nav className="container mx-auto flex flex-col gap-6 px-6 py-8">
+            <NavLink
+              to="/explore"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                cn(
+                  "text-base font-medium transition-colors py-2",
+                  isActive ? "text-blue-400" : "text-slate-300 hover:text-slate-100"
+                )
+              }
+            >
               Explore
-            </a>
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            </NavLink>
+
+            <NavLink
+              to="/become-seller"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                cn(
+                  "text-base font-medium transition-colors py-2",
+                  isActive ? "text-blue-400" : "text-slate-300 hover:text-slate-100"
+                )
+              }
+            >
               Become a Seller
-            </a>
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            </NavLink>
+
+            <NavLink
+              to="/business"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                cn(
+                  "text-base font-medium transition-colors py-2",
+                  isActive ? "text-blue-400" : "text-slate-300 hover:text-slate-100"
+                )
+              }
+            >
               Business
-            </a>
-            <div className="flex gap-2 pt-4 border-t border-border">
-              <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground">
-                Sign In
+            </NavLink>
+
+            <div className="flex flex-col gap-4 pt-6 border-t border-slate-800">
+              <Button
+                variant="outline"
+                className="border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
+                asChild
+                onClick={closeMenu}
+              >
+                <Link to="/Login_Page">Sign In</Link>
               </Button>
-              <Button size="sm" className="flex-1">
-                Join
+
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                asChild
+                onClick={closeMenu}
+              >
+                <Link to="/Signup_Page">Join</Link>
               </Button>
             </div>
           </nav>

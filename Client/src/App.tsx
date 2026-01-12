@@ -1,9 +1,16 @@
+// File: Client/src/App.tsx
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Pages (using consistent PascalCase)
 import Index from "./pages/Index";
+import LoginPage from "./pages/Login_Page";
+import ForgotPassword from "./pages/ForgotPassword";
+import SignupPage from "./pages/Signup_Page";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,8 +22,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public Pages */}
           <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          {/* Authentication Routes */}
+          <Route path="/Login_Page" element={<LoginPage />} />
+          <Route path="/Signup_Page" element={<SignupPage />} />
+          <Route path="/ForgotPassword" element={<ForgotPassword />} />
+
+          {/* Catch-all 404 - must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
