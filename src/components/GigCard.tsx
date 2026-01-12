@@ -22,7 +22,7 @@ const GigCard = ({
   price,
 }: GigCardProps) => {
   return (
-    <div className="group bg-card rounded-xl border border-border overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300">
+    <div className="group bg-card rounded-xl border border-border overflow-hidden shadow-card hover:shadow-card-hover hover:border-primary/50 transition-all duration-300">
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
           src={image}
