@@ -26,36 +26,49 @@ type Profile = {
 };
 
 const fetchProfile = async (username: string) => {
-  const { data, error } = await supabase
+  const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("id, full_name, role, bio, avatar_url, is_verified")
-    .eq("username", username) // assumes you have a username column
-    .single();
+    .eq("username", username)
+    .maybeSingle();
 
-  if (error) throw error;
+  if (profileError) {
+    console.error("Profile fetch error:", profileError);
+    throw profileError;
+  }
 
-  // Fetch average rating from reviews
+  if (!profileData) {
+
+    throw new Error("Profile not found");
+  }
+
+  // 2. Fetch reviews safely
   const { data: reviews, error: reviewsError } = await supabase
     .from("reviews")
     .select("rating")
-    .eq("reviewed_id", data.id);
+    .eq("reviewed_id", profileData.id);
 
-  if (reviewsError) throw reviewsError;
+  if (reviewsError) {
+    console.error("Reviews fetch error:", reviewsError);
+  }
 
   const avgRating = reviews?.length
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
     : 0;
 
-  // Fetch services (gigs offered by this seller)
+  // 3. Fetch services (gigs) – already good, but add error handling
   const { data: gigs, error: gigsError } = await supabase
     .from("gigs")
     .select("title")
-    .eq("seller_id", data.id);
+    .eq("seller_id", profileData.id);
 
-  if (gigsError) throw gigsError;
+  if (gigsError) {
+    console.error("Gigs fetch error:", gigsError);
+    // Again — fallback instead of throwing
+  }
 
   return {
-    ...data,
+    ...profileData,
     rating: avgRating,
     review_count: reviews?.length || 0,
     services: gigs?.map((g) => g.title) || [],

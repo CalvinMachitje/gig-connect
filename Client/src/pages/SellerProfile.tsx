@@ -1,3 +1,4 @@
+// src/pages/SellerProfile.tsx
 import { ArrowLeft, MoreVertical, MessageSquare, Bookmark, Star, CheckCircle, Mail, Calendar, Plane } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -21,10 +21,12 @@ import Index from "./pages/Index";
 import LoginPage from "./pages/Login_Page";
 import SignupPage from "./pages/Signup_Page";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";          // ← added
 import NotFound from "./pages/NotFound";
 import Gigs from "./pages/Gigs";
 import GigDetail from "./pages/GigDetail";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";                    // ← added
 
 // Dashboard & Marketplace Pages
 import BuyerDashboard from "./pages/BuyerDashboard";
@@ -98,7 +100,7 @@ const ProtectedLayout = () => {
   );
 };
 
-// Protected Route Wrapper
+// General protected route (any logged-in user)
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
 
@@ -111,7 +113,30 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!session) {
-    return <Navigate to="/LoginPage" replace />;
+    return <Navigate to="/Login_Page" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Seller-only protected route
+const SellerProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session, userRole, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-white bg-slate-950">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/Login_Page" replace />;
+  }
+
+  if (userRole !== "seller") {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -140,6 +165,7 @@ const App = () => {
             <Route path="/Login_Page" element={<LoginPage />} />
             <Route path="/Signup_Page" element={<SignupPage />} />
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />           {/* ← added */}
 
             {/* Protected routes with layout */}
             <Route element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
@@ -151,10 +177,9 @@ const App = () => {
                 }
               />
 
-              {/* Marketplace & other protected pages */}
+              {/* Marketplace & general protected pages (accessible to both roles) */}
               <Route path="/Gigs" element={<Gigs />} />
               <Route path="/gig/:id" element={<GigDetail />} />
-              <Route path="/create-gig" element={<CreateGig />} />
               <Route path="/profile/:username" element={<Profile />} />
               <Route path="/seller-profile/" element={<SellerProfile />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
@@ -164,6 +189,15 @@ const App = () => {
               <Route path="/verification/:id" element={<VerificationStatus />} />
               <Route path="/review-booking/:id" element={<ReviewBooking />} />
               <Route path="/booking/:id" element={<BookingPage />} />
+
+              {/* Settings page (accessible to any logged-in user) */}
+              <Route path="/settings" element={<Settings />} />                    {/* ← added */}
+
+              {/* Seller-only routes */}
+              <Route element={<SellerProtectedRoute children={""} />}>
+                <Route path="/create-gig" element={<CreateGig />} />
+                {/* Add more seller-only pages here if needed */}
+              </Route>
             </Route>
 
             {/* 404 */}

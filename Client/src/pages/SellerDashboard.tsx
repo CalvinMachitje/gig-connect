@@ -119,7 +119,7 @@ export default function SellerDashboard() {
                 <CardContent className="p-8">
                   <h3 className="text-2xl font-bold text-white mb-4">Create New Gig</h3>
                   <p className="text-slate-300 mb-6">List a new service offering</p>
-                  <RouterLink to="/pages/CreateGig" className="inline-flex items-center justify-center rounded-md border border-slate-600 px-4 py-2 text-lg hover:bg-slate-800">
+                  <RouterLink to="/create-gig" className="inline-flex items-center justify-center rounded-md border border-slate-600 px-4 py-2 text-lg hover:bg-slate-800">
                       Create Gig
                   </RouterLink>
                 </CardContent>
