@@ -12,6 +12,10 @@ import LoginPage from "./pages/Login_Page";
 import ForgotPassword from "./pages/ForgotPassword";
 import SignupPage from "./pages/Signup_Page";
 import NotFound from "./pages/NotFound";
+import Gigs from "./pages/Gigs";
+import CreateGig from "./pages/CreateGig";
+import GigDetail from "./pages/GigDetail";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +33,12 @@ const App = () => (
           <Route path="/Login_Page" element={<LoginPage />} />
           <Route path="/Signup_Page" element={<SignupPage />} />
           <Route path="/ForgotPassword" element={<ForgotPassword />} />
-
+          
+          {/* Core Marketplace Routes */}
+          <Route path="/Gigs" element={<Gigs />} />
+          <Route path="/gig/:id" element={<GigDetail />} />
+          <Route path="/create-gig" element={<CreateGig />} /> {/* protect later */}
+          <Route path="/profile/:username" element={<Profile />} />
           {/* Catch-all 404 - must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
