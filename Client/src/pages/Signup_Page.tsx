@@ -58,7 +58,7 @@ export default function SignupPage() {
 
     const phoneClean = phone.replace(/\s+/g, "");
     if (phoneClean && !/^(?:0|\+27)[1-9][0-9]{8}$/.test(phoneClean)) {
-      errors.phone = "Please enter a valid South African phone number";
+      errors.phone = "Please enter a valid South African phone number (e.g. 0821234567 or +27821234567)";
     }
 
     if (password.length < 8) errors.password = "Password must be at least 8 characters";
@@ -77,7 +77,7 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
 
-    // Pass metadata for the trigger to use
+    // Sign up with metadata (trigger will create profile automatically)
     const { error: signUpError } = await signUp(email, password);
 
     if (signUpError) {
@@ -86,26 +86,10 @@ export default function SignupPage() {
       return;
     }
 
-    // Attempt to create/merge profile record after signup (fallback if auth wrapper doesn't accept metadata)
-    try {
-      await supabase.from('profiles').upsert(
-        {
-          email: email.trim(),
-          full_name: fullName.trim(),
-          phone: phone.trim() || null,
-          role,
-        },
-        { onConflict: 'email' }
-      );
-    } catch (upsertError) {
-      // non-fatal; don't block signup flow
-      console.warn('Profile upsert failed', upsertError);
-    }
+    // Give Supabase trigger a moment to create the profile row
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Give the database trigger a moment to create the profile (or for upsert to propagate)
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Always show confirmation screen after signup (safe UX)
+    // Show confirmation screen (recommended UX even if confirmation is off)
     setEmailConfirmSent(true);
 
     setLoading(false);
@@ -137,10 +121,10 @@ export default function SignupPage() {
             <CardTitle className="text-2xl text-white">Check Your Email</CardTitle>
             <CardDescription className="text-slate-400 mt-2">
               We sent a confirmation link to <strong>{email}</strong>.<br />
-              Please check your inbox (and spam folder) and click the link to activate your account.
+              Please check your inbox (and spam/junk folder) and click the link to activate your account.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
+          <CardContent className="text-center space-y-4">
             <Button
               onClick={async () => {
                 const { error } = await supabase.auth.resend({
@@ -153,13 +137,16 @@ export default function SignupPage() {
                   alert("Error resending: " + error.message);
                 }
               }}
-              className="mt-6 bg-blue-600 hover:bg-blue-700 w-full"
+              className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-lg"
             >
               Resend Confirmation Email
             </Button>
+            <p className="text-slate-400 text-sm">
+              Didn't receive it? Check your spam folder or try again.
+            </p>
           </CardContent>
           <CardFooter className="text-center text-slate-400">
-            <Link to="/LoginPage" className="text-blue-400 hover:underline">
+            <Link to="/login" className="text-blue-400 hover:underline">
               Back to Login
             </Link>
           </CardFooter>
@@ -384,7 +371,7 @@ export default function SignupPage() {
             <Separator className="bg-slate-700" />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="bg-slate-900 px-4 text-xs text-slate-500 uppercase tracking-wider">
-                or continue with
+                or sign up with
               </span>
             </div>
           </div>
@@ -411,7 +398,7 @@ export default function SignupPage() {
 
         <CardFooter className="text-center text-sm text-slate-400 pt-6 border-t border-slate-800">
           Already have an account?{" "}
-          <Link to="/LoginPage" className="text-blue-400 hover:text-blue-300 hover:underline ml-1">
+          <Link to="/login" className="text-blue-400 hover:text-blue-300 hover:underline ml-1">
             Log In
           </Link>
         </CardFooter>

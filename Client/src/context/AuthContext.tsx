@@ -3,38 +3,57 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 
-type AuthContextType = {
+type UserRole = 'buyer' | 'seller' | null;
+
+interface SignUpOptions {
+  data?: {
+    full_name?: string;
+    phone?: string | null;
+    role?: UserRole;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+interface AuthContextType {
   session: Session | null;
   user: User | null;
+  userRole: UserRole;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    options?: SignUpOptions
+  ) => Promise<{ data: any; error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
-  // Add role fetching later if you store roles in profiles table
-  userRole: 'buyer' | 'seller' | null;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<'buyer' | 'seller' | null>(null);
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
-      // Optional: fetch role from public.profiles table if you have one
+
       if (session?.user) {
         fetchUserRole(session.user.id);
       }
     });
 
-    // Listen for auth changes (login, logout, token refresh)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setUser(session?.user ?? null);
+
       if (session?.user) {
         fetchUserRole(session.user.id);
       } else {
@@ -45,43 +64,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Example: fetch role from a profiles table (create this table in Supabase if needed)
-  async function fetchUserRole(userId: string) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
+  // Fetch role from profiles table
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
 
-    if (!error && data?.role) {
-      setUserRole(data.role as 'buyer' | 'seller');
-    } else {
-      setUserRole('buyer'); // fallback
+      if (error) {
+        console.warn('Failed to fetch user role:', error);
+        setUserRole('buyer'); // fallback
+      } else if (data?.role) {
+        setUserRole(data.role as UserRole);
+      } else {
+        setUserRole('buyer');
+      }
+    } catch (err) {
+      console.error('Role fetch error:', err);
+      setUserRole('buyer');
     }
-  }
-
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error };
   };
 
+  // Sign up with optional metadata
+  const signUp = async (email: string, password: string, options?: SignUpOptions) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: options?.data,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+
+    return { data, error };
+  };
+
+  // Sign in
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    return { data, error };
   };
 
+  // Sign out
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error('Sign out error:', error);
   };
 
-  const value = {
+  const value: AuthContextType = {
     session,
-    user: session?.user ?? null,
+    user,
+    userRole,
     loading,
     signUp,
     signIn,
     signOut,
-    userRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

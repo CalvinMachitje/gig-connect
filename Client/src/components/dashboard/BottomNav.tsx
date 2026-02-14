@@ -69,7 +69,7 @@ export default function BottomNav() {
           filter: `receiver_id=eq.${user.id}`,
         },
         () => {
-          // Optimistic +1 for new unread message
+          // Optimistic +1 when new message arrives
           queryClient.setQueryData<number>(["unread-messages", user.id], (old = 0) => old + 1);
         }
       )
@@ -117,33 +117,33 @@ export default function BottomNav() {
     },
   ];
 
-  // Role-specific Messages & Profile
+  // Role-specific Messages & Profile (this is the fix you asked for)
   const roleBottomItems: NavItem[] =
     userRole === "buyer"
       ? [
           {
             icon: MessageSquare,
             label: "Messages",
-            path: "/chat/", // or "/messages/buyer" if you want separate
+            path: "/chat/",           // Buyer chat (or use /messages/buyer if separate)
             badge: unreadCount > 0 ? unreadCount : undefined,
           },
           {
             icon: User,
             label: "Profile",
-            path: "/profile/",
+            path: "/profile/",        // Buyer profile view/edit
           },
         ]
       : [
           {
             icon: MessageSquare,
             label: "Messages",
-            path: "/messages/seller", // seller-specific messages route
+            path: "/messages/seller", // Seller inbox – incoming client messages
             badge: unreadCount > 0 ? unreadCount : undefined,
           },
           {
             icon: User,
             label: "Profile",
-            path: "/seller-profile/", // or "/seller/:username" if dynamic
+            path: "/seller-profile/", // Seller self-profile (edit gigs, availability, etc.)
           },
         ];
 
@@ -173,7 +173,7 @@ export default function BottomNav() {
               <div className="relative">
                 <item.icon className="h-6 w-6" />
 
-                {/* Unread badge (only shown on Messages item) */}
+                {/* Unread badge (only on Messages) */}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-md">
                     {item.badge > 99 ? "99+" : item.badge}

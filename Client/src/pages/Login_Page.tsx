@@ -26,13 +26,13 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    if (!email.trim() || !password) {
-      setError("Please fill in both email and password");
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter both email and password");
       setLoading(false);
       return;
     }
 
-    const { error: signInError } = await signIn(email, password);
+    const { error: signInError } = await signIn(email.trim(), password.trim());
 
     if (signInError) {
       setError(signInError.message);
@@ -123,7 +123,7 @@ export default function LoginPage() {
           </div>
 
           <div className="text-right">
-            <Link to="/ForgotPassword" className="text-sm text-blue-400 hover:text-blue-300 hover:underline">
+            <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300 hover:underline">
               Forgot Password?
             </Link>
           </div>
@@ -167,7 +167,7 @@ export default function LoginPage() {
 
         <CardFooter className="flex flex-col text-center text-sm text-slate-400 pt-6 border-t border-slate-800">
           <p>Don't have an account?</p>
-          <Link to="/Signup_Page" className="text-blue-400 hover:text-blue-300 hover:underline font-medium">
+          <Link to="/signup" className="text-blue-400 hover:text-blue-300 hover:underline font-medium">
             Apply for access →
           </Link>
         </CardFooter>

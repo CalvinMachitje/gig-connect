@@ -1,4 +1,4 @@
-// src/pages/Profile.tsx
+// src/pages/Buyer/BuyerProfile.tsx
 // Public profile view (tailored for buyer role – viewing a worker/assistant)
 
 import { useParams, useNavigate } from "react-router-dom";

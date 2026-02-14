@@ -26,38 +26,38 @@ interface NavItem {
 export default function BottomNav() {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { userRole, user } = useAuth();
+  const { userRole, user } = useAuth(); // 'buyer' | 'seller'
 
   // ────────────────────────────────────────────────
-  // Unread message count (realtime)
+  // Unread message count (realtime, shared for both roles)
   // ────────────────────────────────────────────────
   const { data: unreadCount = 0 } = useQuery<number>({
     queryKey: ["unread-messages", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
-  
+
       const { count, error } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .is("read_at", null);
-  
+
       if (error) {
         console.error("Unread count error:", error);
         return 0;
       }
-  
+
       return count || 0;
     },
     enabled: !!user?.id,
     refetchInterval: 30000, // fallback poll every 30s
   });
-  
+
   const queryClient = useQueryClient();
-  
+
   useEffect(() => {
     if (!user?.id) return;
-  
+
     const channel = supabase
       .channel(`unread-messages:${user.id}`)
       .on(
@@ -74,43 +74,83 @@ export default function BottomNav() {
         }
       )
       .subscribe();
-  
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user?.id, queryClient]);
 
   // ────────────────────────────────────────────────
-  // Nav items – now typed with badge?
+  // Navigation items – role-specific Messages & Profile
   // ────────────────────────────────────────────────
   const sharedItems: NavItem[] = [
-    { icon: Home, label: "Home", path: "/dashboard" },
+    {
+      icon: Home,
+      label: "Home",
+      path: "/dashboard",
+    },
   ];
 
   const buyerItems: NavItem[] = [
-    { icon: Search, label: "Search", path: "/Gigs" },
-    { icon: Calendar, label: "Bookings", path: "/pages/ManageBookings" },
+    {
+      icon: Search,
+      label: "Search",
+      path: "/Gigs",
+    },
+    {
+      icon: Calendar,
+      label: "Bookings",
+      path: "/bookings",
+    },
   ];
 
   const sellerItems: NavItem[] = [
-    { icon: Briefcase, label: "Gigs", path: "/Gigs" },
-    { icon: ClipboardList, label: "Manage", path: "/pages/BookingPages" },
+    {
+      icon: Briefcase,
+      label: "Gigs",
+      path: "/Gigs",
+    },
+    {
+      icon: ClipboardList,
+      label: "Manage",
+      path: "/bookings",
+    },
   ];
 
-  const bottomItems: NavItem[] = [
-    {
-      icon: MessageSquare,
-      label: "Messages",
-      path: "/chat/",
-      badge: unreadCount > 0 ? unreadCount : undefined,
-    },
-    { icon: User, label: "Profile", path: "/pages/Profile/" },
-  ];
+  // Role-specific Messages & Profile (this is the fix you asked for)
+  const roleBottomItems: NavItem[] =
+    userRole === "buyer"
+      ? [
+          {
+            icon: MessageSquare,
+            label: "Messages",
+            path: "/chat/",           // Buyer chat (or use /messages/buyer if separate)
+            badge: unreadCount > 0 ? unreadCount : undefined,
+          },
+          {
+            icon: User,
+            label: "Profile",
+            path: "/profile/",        // Buyer profile view/edit
+          },
+        ]
+      : [
+          {
+            icon: MessageSquare,
+            label: "Messages",
+            path: "/messages/seller", // Seller inbox – incoming client messages
+            badge: unreadCount > 0 ? unreadCount : undefined,
+          },
+          {
+            icon: User,
+            label: "Profile",
+            path: "/seller-profile/", // Seller self-profile (edit gigs, availability, etc.)
+          },
+        ];
 
   const navItems: NavItem[] = [
     ...sharedItems,
     ...(userRole === "buyer" ? buyerItems : sellerItems),
-    ...bottomItems,
+    ...roleBottomItems,
   ];
 
   return (
@@ -133,7 +173,7 @@ export default function BottomNav() {
               <div className="relative">
                 <item.icon className="h-6 w-6" />
 
-                {/* Unread badge on Messages */}
+                {/* Unread badge (only on Messages) */}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-md">
                     {item.badge > 99 ? "99+" : item.badge}

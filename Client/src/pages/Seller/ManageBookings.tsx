@@ -1,4 +1,4 @@
-// src/pages/ManageBookings.tsx
+// src/pages/Seller/ManageBookings.tsx
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";

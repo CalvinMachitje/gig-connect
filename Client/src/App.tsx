@@ -10,97 +10,57 @@ import {
   Route,
   Navigate,
   Outlet,
-  Link,
   useLocation,
 } from "react-router-dom";
-import { Home, Search, Calendar, User, MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 // Pages
 import Index from "./pages/Index";
 import LoginPage from "./pages/Login_Page";
-import SignupPage from "./pages/Signup_Page";
+import SignupPage from "./pages/Signup_Page"; 
 import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";          // ← added
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Gigs from "./pages/Gigs";
 import GigDetail from "./pages/GigDetail";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";                    // ← added
+import BuyerProfile from "./pages/Buyer/BuyerProfile";
+import Settings from "./pages/Settings";
 
 // Dashboard & Marketplace Pages
-import BuyerDashboard from "./pages/BuyerDashboard";
-import SellerDashboard from "./pages/SellerDashboard";
-import SellerProfile from "./pages/SellerProfile";
-import CreateGig from "./pages/CreateGig";
-import BookingPage from "./pages/BookingPage";
+import BuyerDashboard from "./pages/Buyer/BuyerDashboard";
+import SellerDashboard from "./pages/Seller/SellerDashboard";
+import SellerProfile from "./pages/Seller/SellerProfile";
+import CreateGig from "./pages/Seller/CreateGig";
+import BookingPage from "./pages/Buyer/BookingPage";
 import CategoryPage from "./pages/CategoryPage";
-import ManageBookings from "./pages/ManageBookings";
+import ManageBookings from "./pages/Seller/ManageBookings";
 import ChatPage from "./pages/ChatPage";
-import WorkerProfile from "./pages/WorkerProfile";
 import VerificationStatus from "./pages/VerificationStatus";
 import ReviewBooking from "./pages/ReviewBooking";
+import SellerMessagesPage from "./pages/Seller/SellerMessagesPage"; 
 
-// Supabase Auth
+// Supabase Auth & Layout
 import { useAuth } from "@/context/AuthContext";
+import BottomNav from "@/components/layout/BottomNav";
 
 const queryClient = new QueryClient();
 
-// Bottom Navigation Component (mobile)
-const BottomNav = () => {
-  const location = useLocation();
-  const currentPath = location.pathname;
-
-  const navItems = [
-    { icon: Home, label: "Home", path: "/dashboard" },
-    { icon: Search, label: "Search", path: "/Gigs" },
-    { icon: Calendar, label: "Bookings", path: "/bookings" },
-    { icon: MessageSquare, label: "Messages", path: "/chat/" },
-    { icon: User, label: "Profile", path: "/profile/" },
-  ];
-
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 md:hidden">
-      <div className="flex items-center justify-around h-16 px-2">
-        {navItems.map((item) => {
-          const isActive = currentPath === item.path || currentPath.startsWith(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex flex-col items-center justify-center flex-1 py-1 transition-colors",
-                isActive ? "text-blue-400" : "text-slate-400 hover:text-slate-200"
-              )}
-            >
-              <item.icon className="h-6 w-6" />
-              <span className="text-xs mt-1 font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-  );
-};
-
-// Layout for all authenticated/protected pages
+// ────────────────────────────────────────────────
+// Protected Layout (with mobile bottom nav)
+// ────────────────────────────────────────────────
 const ProtectedLayout = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col">
       <main className="flex-1 pb-20 md:pb-0 overflow-y-auto">
         <Outlet />
       </main>
-
-      {/* Mobile bottom navigation */}
       <BottomNav />
-
-      {/* Optional: Desktop sidebar */}
-      {/* <aside className="hidden md:block fixed left-0 top-0 bottom-0 w-64 bg-slate-900/80 border-r border-slate-800 p-6">Sidebar content...</aside> */}
     </div>
   );
 };
 
-// General protected route (any logged-in user)
+// ────────────────────────────────────────────────
+// General Protected Route (any logged-in user)
+// ────────────────────────────────────────────────
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
 
@@ -113,13 +73,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!session) {
-    return <Navigate to="/Login_Page" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
 };
 
-// Seller-only protected route
+// ────────────────────────────────────────────────
+// Seller-only Protected Route
+// ────────────────────────────────────────────────
 const SellerProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, userRole, loading } = useAuth();
 
@@ -132,7 +94,7 @@ const SellerProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!session) {
-    return <Navigate to="/Login_Page" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (userRole !== "seller") {
@@ -142,8 +104,16 @@ const SellerProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// ────────────────────────────────────────────────
+// Dashboard Switcher (renders correct dashboard based on role)
+// ────────────────────────────────────────────────
+const DashboardSwitcher = () => {
+  const { userRole } = useAuth();
+  return userRole === "seller" ? <SellerDashboard /> : <BuyerDashboard />;
+};
+
 const App = () => {
-  const { session, userRole, loading } = useAuth();
+  const { session, loading } = useAuth();
 
   if (loading) {
     return (
@@ -162,42 +132,36 @@ const App = () => {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Index />} />
-            <Route path="/Login_Page" element={<LoginPage />} />
-            <Route path="/Signup_Page" element={<SignupPage />} />
-            <Route path="/ForgotPassword" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />           {/* ← added */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Protected routes with layout */}
+            {/* Protected routes (any logged-in user) */}
             <Route element={<ProtectedRoute><ProtectedLayout /></ProtectedRoute>}>
-              {/* Role-based dashboard */}
-              <Route
-                path="/dashboard"
-                element={
-                  userRole === "seller" ? <SellerDashboard /> : <BuyerDashboard />
-                }
-              />
+              {/* Dashboard – switches based on role */}
+              <Route path="/dashboard" element={<DashboardSwitcher />} />
 
-              {/* Marketplace & general protected pages (accessible to both roles) */}
-              <Route path="/Gigs" element={<Gigs />} />
+              {/* Shared / buyer-leaning pages */}
+              <Route path="/gigs" element={<Gigs />} />
               <Route path="/gig/:id" element={<GigDetail />} />
-              <Route path="/profile/:username" element={<Profile />} />
-              <Route path="/seller-profile/" element={<SellerProfile />} />
+              <Route path="/profile/:username" element={<BuyerProfile />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/bookings" element={<ManageBookings />} />
               <Route path="/chat/:chatId" element={<ChatPage />} />
-              <Route path="/worker/:id" element={<WorkerProfile />} />
               <Route path="/verification/:id" element={<VerificationStatus />} />
               <Route path="/review-booking/:id" element={<ReviewBooking />} />
               <Route path="/booking/:id" element={<BookingPage />} />
 
-              {/* Settings page (accessible to any logged-in user) */}
-              <Route path="/settings" element={<Settings />} />                    {/* ← added */}
+              {/* Settings (any user) */}
+              <Route path="/settings" element={<Settings />} />
+            </Route>
 
-              {/* Seller-only routes */}
-              <Route element={<SellerProtectedRoute children={""} />}>
-                <Route path="/create-gig" element={<CreateGig />} />
-                {/* Add more seller-only pages here if needed */}
-              </Route>
+            {/* Seller-only protected routes */}
+            <Route element={<SellerProtectedRoute><ProtectedLayout /></SellerProtectedRoute>}>
+              <Route path="/create-gig" element={<CreateGig />} />
+              <Route path="/messages/seller" element={<SellerMessagesPage />} />
+              <Route path="/seller-profile/*" element={<SellerProfile />} />
             </Route>
 
             {/* 404 */}
