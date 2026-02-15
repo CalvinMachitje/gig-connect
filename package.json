@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/CalvinMachitje/gig-connect/issues"
   },
-  "homepage": "https://github.com/CalvinMachitje/gig-connect#readme"
+  "homepage": "https://github.com/CalvinMachitje/gig-connect#readme",
+  "dependencies": {
+    "react-intersection-observer": "^10.0.2"
+  }
 }

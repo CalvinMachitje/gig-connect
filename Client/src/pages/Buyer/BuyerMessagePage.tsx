@@ -15,135 +15,120 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
 
-// Define the shape of each nav item
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   path: string;
-  badge?: number; // optional unread count
+  badge?: number;
+  exact?: boolean;
 }
 
 export default function BottomNav() {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { userRole, user } = useAuth(); // 'buyer' | 'seller'
+  const { userRole, user, loading } = useAuth();
 
-  // ────────────────────────────────────────────────
-  // Unread message count (realtime, shared for both roles)
-  // ────────────────────────────────────────────────
+  // Loading skeleton while role is being fetched
+  if (loading || !userRole) {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 md:hidden">
+        <div className="flex items-center justify-around h-16 px-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="h-8 w-8 bg-slate-700 rounded-full animate-pulse mb-1" />
+              <div className="h-3 w-10 bg-slate-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </nav>
+    );
+  }
+
+  // Unread count (unchanged – this part is solid)
   const { data: unreadCount = 0 } = useQuery<number>({
     queryKey: ["unread-messages", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
-
       const { count, error } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })
         .eq("receiver_id", user.id)
         .is("read_at", null);
-
       if (error) {
         console.error("Unread count error:", error);
         return 0;
       }
-
       return count || 0;
     },
     enabled: !!user?.id,
-    refetchInterval: 30000, // fallback poll every 30s
+    refetchInterval: 30000,
   });
 
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!user?.id) return;
-
     const channel = supabase
       .channel(`unread-messages:${user.id}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
-        },
-        () => {
-          // Optimistic +1 when new message arrives
-          queryClient.setQueryData<number>(["unread-messages", user.id], (old = 0) => old + 1);
-        }
+        { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => queryClient.setQueryData<number>(["unread-messages", user.id], (old = 0) => old + 1)
       )
       .subscribe();
-
     return () => {
-      supabase.removeChannel(channel);
+      // Call removeChannel but don't return its Promise so the cleanup is synchronous
+      void supabase.removeChannel(channel);
     };
   }, [user?.id, queryClient]);
 
   // ────────────────────────────────────────────────
-  // Navigation items – role-specific Messages & Profile
+  // FIXED NAV ITEMS – exact paths matching your folder structure
   // ────────────────────────────────────────────────
   const sharedItems: NavItem[] = [
-    {
-      icon: Home,
-      label: "Home",
-      path: "/dashboard",
-    },
+    { icon: Home, label: "Home", path: "/dashboard", exact: true },
   ];
 
   const buyerItems: NavItem[] = [
-    {
-      icon: Search,
-      label: "Search",
-      path: "/Gigs",
-    },
-    {
-      icon: Calendar,
-      label: "Bookings",
-      path: "/bookings",
-    },
+    { icon: Search, label: "Search", path: "/gigs", exact: true },
+    { icon: Calendar, label: "Bookings", path: "/bookings", exact: true },
   ];
 
   const sellerItems: NavItem[] = [
-    {
-      icon: Briefcase,
-      label: "Gigs",
-      path: "/Gigs",
-    },
-    {
-      icon: ClipboardList,
-      label: "Manage",
-      path: "/bookings",
-    },
+    { icon: Briefcase, label: "Gigs", path: "/gigs", exact: true },
+    { icon: ClipboardList, label: "Manage", path: "/bookings", exact: true },
   ];
 
-  // Role-specific Messages & Profile (this is the fix you asked for)
   const roleBottomItems: NavItem[] =
     userRole === "buyer"
       ? [
           {
             icon: MessageSquare,
             label: "Messages",
-            path: "/chat/",           // Buyer chat (or use /messages/buyer if separate)
+            path: "/messages/buyer",           // ← now points to buyer inbox
+            exact: true,
             badge: unreadCount > 0 ? unreadCount : undefined,
           },
           {
             icon: User,
             label: "Profile",
-            path: "/profile/",        // Buyer profile view/edit
+            path: "/profile",                  // ← now points to buyer profile landing
+            exact: true,
           },
         ]
       : [
           {
             icon: MessageSquare,
             label: "Messages",
-            path: "/messages/seller", // Seller inbox – incoming client messages
+            path: "/messages/seller",          // ← seller inbox
+            exact: true,
             badge: unreadCount > 0 ? unreadCount : undefined,
           },
           {
             icon: User,
             label: "Profile",
-            path: "/seller-profile/", // Seller self-profile (edit gigs, availability, etc.)
+            path: "/seller-profile",           // ← seller profile
+            exact: true,
           },
         ];
 
@@ -157,30 +142,34 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 md:hidden">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
-          const isActive =
-            currentPath === item.path ||
-            currentPath.startsWith(item.path);
+          const isActive = item.exact
+            ? currentPath === item.path
+            : currentPath.startsWith(item.path);
 
           return (
             <Link
               key={item.path}
               to={item.path}
               className={cn(
-                "relative flex flex-col items-center justify-center flex-1 py-1 transition-colors",
-                isActive ? "text-blue-400" : "text-slate-400 hover:text-slate-200"
+                "relative flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200",
+                isActive
+                  ? "text-blue-400 scale-110"
+                  : "text-slate-400 hover:text-slate-200 hover:scale-105"
               )}
             >
-              <div className="relative">
+              <div
+                className={cn(
+                  "p-3 rounded-full transition-all duration-300",
+                  isActive ? "bg-blue-600/20" : "hover:bg-slate-800/50"
+                )}
+              >
                 <item.icon className="h-6 w-6" />
-
-                {/* Unread badge (only on Messages) */}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-md">
                     {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 )}
               </div>
-
               <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
           );

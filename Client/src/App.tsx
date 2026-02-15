@@ -14,28 +14,28 @@ import {
 } from "react-router-dom";
 
 // Pages
-import Index from "./pages/Index";
-import LoginPage from "./pages/Login_Page";
-import SignupPage from "./pages/Signup_Page"; 
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
-import Gigs from "./pages/Gigs";
-import GigDetail from "./pages/GigDetail";
+import Index from "./pages/shared/Index";
+import LoginPage from "./pages/Auth/LoginPage";
+import SignupPage from "./pages/Auth/SignupPage"; 
+import ForgotPassword from "./pages/shared/ForgotPassword";
+import ResetPassword from "./pages/shared/ResetPassword";
+import NotFound from "./pages/shared/NotFound";
+import Gigs from "./pages/shared/Gigs";
+import GigDetail from "./pages/shared/GigDetail";
 import BuyerProfile from "./pages/Buyer/BuyerProfile";
-import Settings from "./pages/Settings";
+import Settings from "./pages/shared/Settings";
 
 // Dashboard & Marketplace Pages
 import BuyerDashboard from "./pages/Buyer/BuyerDashboard";
 import SellerDashboard from "./pages/Seller/SellerDashboard";
 import SellerProfile from "./pages/Seller/SellerProfile";
 import CreateGig from "./pages/Seller/CreateGig";
-import BookingPage from "./pages/Buyer/BookingPage";
-import CategoryPage from "./pages/CategoryPage";
-import ManageBookings from "./pages/Seller/ManageBookings";
-import ChatPage from "./pages/ChatPage";
-import VerificationStatus from "./pages/VerificationStatus";
-import ReviewBooking from "./pages/ReviewBooking";
+import BookingPage from "./pages/shared/BookingPage";
+import CategoryPage from "./pages/shared/CategoryPage";
+import ManageBookings from "./pages/shared/ManageBookings";
+import BuyerMessagePage from "./pages/Buyer/BuyerMessagePage";
+import VerificationStatus from "./pages/shared/VerificationStatus";
+import ReviewBooking from "./pages/shared/ReviewBooking";
 import SellerMessagesPage from "./pages/Seller/SellerMessagesPage"; 
 
 // Supabase Auth & Layout
@@ -145,10 +145,10 @@ const App = () => {
               {/* Shared / buyer-leaning pages */}
               <Route path="/gigs" element={<Gigs />} />
               <Route path="/gig/:id" element={<GigDetail />} />
-              <Route path="/profile/:username" element={<BuyerProfile />} />
+              <Route path="/buyerprofile/:id" element={<BuyerProfile />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/bookings" element={<ManageBookings />} />
-              <Route path="/chat/:chatId" element={<ChatPage />} />
+              <Route path="/messages/buyer" element={<BuyerMessagePage />} />
               <Route path="/verification/:id" element={<VerificationStatus />} />
               <Route path="/review-booking/:id" element={<ReviewBooking />} />
               <Route path="/booking/:id" element={<BookingPage />} />
@@ -161,7 +161,7 @@ const App = () => {
             <Route element={<SellerProtectedRoute><ProtectedLayout /></SellerProtectedRoute>}>
               <Route path="/create-gig" element={<CreateGig />} />
               <Route path="/messages/seller" element={<SellerMessagesPage />} />
-              <Route path="/seller-profile/*" element={<SellerProfile />} />
+              <Route path="/sellerprofile/:id" element={<SellerProfile />} />
             </Route>
 
             {/* 404 */}

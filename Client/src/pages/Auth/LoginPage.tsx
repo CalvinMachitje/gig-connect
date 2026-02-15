@@ -1,4 +1,4 @@
-// src/pages/LoginPage.tsx
+// src/pages/Auth/LoginPage.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,13 +26,13 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter both email and password");
+    if (!email.trim() || !password) {
+      setError("Please fill in both email and password");
       setLoading(false);
       return;
     }
 
-    const { error: signInError } = await signIn(email.trim(), password.trim());
+    const { error: signInError } = await signIn(email, password);
 
     if (signInError) {
       setError(signInError.message);

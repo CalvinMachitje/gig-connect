@@ -1,5 +1,5 @@
 // src/components/layout/BottomNav.tsx
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   Search,
@@ -8,12 +8,14 @@ import {
   User,
   Briefcase,
   ClipboardList,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 // Define the shape of each nav item
 interface NavItem {
@@ -21,12 +23,15 @@ interface NavItem {
   label: string;
   path: string;
   badge?: number; // optional unread count
+  exact?: boolean; // optional: force exact match for active state
+  onClick?: () => void; // optional: custom handler (for logout)
 }
 
 export default function BottomNav() {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { userRole, user } = useAuth(); // 'buyer' | 'seller'
+  const navigate = useNavigate();
+  const { userRole, user, loading, signOut } = useAuth(); // 'buyer' | 'seller'
 
   // ────────────────────────────────────────────────
   // Unread message count (realtime, shared for both roles)
@@ -81,13 +86,14 @@ export default function BottomNav() {
   }, [user?.id, queryClient]);
 
   // ────────────────────────────────────────────────
-  // Navigation items – role-specific Messages & Profile
+  // Navigation items – role-specific + Logout
   // ────────────────────────────────────────────────
   const sharedItems: NavItem[] = [
     {
       icon: Home,
       label: "Home",
       path: "/dashboard",
+      exact: true,
     },
   ];
 
@@ -95,12 +101,14 @@ export default function BottomNav() {
     {
       icon: Search,
       label: "Search",
-      path: "/Gigs",
+      path: "/gigs",
+      exact: true,
     },
     {
       icon: Calendar,
       label: "Bookings",
       path: "/bookings",
+      exact: true,
     },
   ];
 
@@ -108,72 +116,135 @@ export default function BottomNav() {
     {
       icon: Briefcase,
       label: "Gigs",
-      path: "/Gigs",
+      path: "/gigs",
+      exact: true,
     },
     {
       icon: ClipboardList,
       label: "Manage",
       path: "/bookings",
+      exact: true,
     },
   ];
 
-  // Role-specific Messages & Profile (this is the fix you asked for)
   const roleBottomItems: NavItem[] =
     userRole === "buyer"
       ? [
           {
             icon: MessageSquare,
             label: "Messages",
-            path: "/chat/",           // Buyer chat (or use /messages/buyer if separate)
+            path: "/messages/buyer",
+            exact: true,
             badge: unreadCount > 0 ? unreadCount : undefined,
           },
           {
             icon: User,
             label: "Profile",
-            path: "/profile/",        // Buyer profile view/edit
+            path: user?.id ? `/buyerprofile/${user.id}` : "#",
+            exact: true,
           },
         ]
       : [
           {
             icon: MessageSquare,
             label: "Messages",
-            path: "/messages/seller", // Seller inbox – incoming client messages
+            path: "/messages/seller",
+            exact: true,
             badge: unreadCount > 0 ? unreadCount : undefined,
           },
           {
             icon: User,
             label: "Profile",
-            path: "/seller-profile/", // Seller self-profile (edit gigs, availability, etc.)
+            path: user?.id ? `/sellerprofile/${user.id}` : "#",
+            exact: true,
           },
         ];
+
+  const logoutItem: NavItem = {
+    icon: LogOut,
+    label: "Logout",
+    path: "#", // dummy path – handled by onClick
+    exact: true,
+    onClick: async () => {
+      try {
+        await signOut();
+        toast.success("Logged out successfully");
+        navigate("/login");
+      } catch (err: any) {
+        toast.error("Logout failed");
+      }
+    },
+  };
 
   const navItems: NavItem[] = [
     ...sharedItems,
     ...(userRole === "buyer" ? buyerItems : sellerItems),
     ...roleBottomItems,
+    logoutItem, // always last
   ];
+
+  // ────────────────────────────────────────────────
+  // Loading state (skeleton nav while role is loading)
+  // ────────────────────────────────────────────────
+  if (loading || !userRole) {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 md:hidden">
+        <div className="flex items-center justify-around h-16 px-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="h-8 w-8 bg-slate-700 rounded-full animate-pulse mb-1" />
+              <div className="h-3 w-12 bg-slate-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 md:hidden">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
-          const isActive =
-            currentPath === item.path ||
-            currentPath.startsWith(item.path);
+          if (item.onClick) {
+            // Special case: Logout button
+            return (
+              <button
+                key="logout"
+                onClick={item.onClick}
+                className={cn(
+                  "relative flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200",
+                  "text-red-400 hover:text-red-300 hover:scale-105"
+                )}
+              >
+                <div className="p-3 rounded-full hover:bg-red-950/30 transition-all duration-300">
+                  <item.icon className="h-6 w-6" />
+                </div>
+                <span className="text-xs mt-1 font-medium">{item.label}</span>
+              </button>
+            );
+          }
+
+          const isActive = item.exact
+            ? currentPath === item.path
+            : currentPath === item.path || currentPath.startsWith(item.path);
 
           return (
             <Link
               key={item.path}
               to={item.path}
               className={cn(
-                "relative flex flex-col items-center justify-center flex-1 py-1 transition-colors",
-                isActive ? "text-blue-400" : "text-slate-400 hover:text-slate-200"
+                "relative flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200",
+                isActive ? "text-blue-400 scale-110" : "text-slate-400 hover:text-slate-200 hover:scale-105"
               )}
             >
-              <div className="relative">
+              <div
+                className={cn(
+                  "p-3 rounded-full transition-all duration-300",
+                  isActive ? "bg-blue-600/20" : "hover:bg-slate-800/50"
+                )}
+              >
                 <item.icon className="h-6 w-6" />
 
-                {/* Unread badge (only on Messages) */}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-md">
                     {item.badge > 99 ? "99+" : item.badge}

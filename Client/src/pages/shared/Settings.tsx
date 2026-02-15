@@ -1,4 +1,4 @@
-// src/pages/Settings.tsx
+// src/pages/shared/Settings.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";

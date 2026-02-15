@@ -1,4 +1,4 @@
-// src/pages/GigDetail.tsx (New file: Single gig detail page)
+// src/pages/shared/GigDetail.tsx
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

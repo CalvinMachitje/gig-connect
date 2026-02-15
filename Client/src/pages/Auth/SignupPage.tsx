@@ -1,4 +1,4 @@
-// src/pages/SignupPage.tsx
+// src/pages/Auth/SignupPage.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Phone, Facebook, Chrome } fro
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -30,7 +31,7 @@ export default function SignupPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
-  // Password strength logic
+  // Password strength logic (unchanged)
   const getPasswordStrength = (pwd: string) => {
     let strength = 0;
     if (pwd.length >= 8) strength += 1;
@@ -48,7 +49,7 @@ export default function SignupPage() {
   const passwordStrength = getPasswordStrength(password);
   const passwordStrengthWidth = `${(passwordStrength.score / 4) * 100}%`;
 
-  // Form validation
+  // Form validation (unchanged)
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
 
@@ -58,7 +59,7 @@ export default function SignupPage() {
 
     const phoneClean = phone.replace(/\s+/g, "");
     if (phoneClean && !/^(?:0|\+27)[1-9][0-9]{8}$/.test(phoneClean)) {
-      errors.phone = "Please enter a valid South African phone number (e.g. 0821234567 or +27821234567)";
+      errors.phone = "Please enter a valid South African phone number";
     }
 
     if (password.length < 8) errors.password = "Password must be at least 8 characters";
@@ -77,40 +78,59 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
 
-    // Sign up with metadata (trigger will create profile automatically)
-    const { error: signUpError } = await signUp(email, password);
+    try {
+      // Sign up with metadata
+      const { data: signUpData, error: signUpError } = await signUp({
+        email: email.trim(),
+        password: password.trim(),
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            phone: phone.trim() || null,
+            role, // This is now correctly passed and respected by trigger
+          },
+        },
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
+      if (signUpError) throw signUpError;
+
+      // If email confirmation required (recommended for production)
+      if (!signUpData.session) {
+        setEmailConfirmSent(true);
+        toast.info("Check your email for confirmation link");
+        return;
+      }
+
+      // Auto-confirmed (dev mode)
+      toast.success("Account created successfully!");
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      setError(err.message || "Failed to create account");
+      toast.error(err.message || "Signup failed");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Give Supabase trigger a moment to create the profile row
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Show confirmation screen (recommended UX even if confirmation is off)
-    setEmailConfirmSent(true);
-
-    setLoading(false);
   };
 
   const handleOAuthSignIn = async (provider: "google" | "facebook") => {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
-
-    if (error) {
-      setError(error.message);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   if (emailConfirmSent) {
@@ -118,38 +138,34 @@ export default function SignupPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 p-4">
         <Card className="w-full max-w-md border-slate-800 bg-slate-900/70 backdrop-blur-md shadow-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white">Check Your Email</CardTitle>
+            <CardTitle className="text-2xl text-white">Confirm Your Email</CardTitle>
             <CardDescription className="text-slate-400 mt-2">
               We sent a confirmation link to <strong>{email}</strong>.<br />
-              Please check your inbox (and spam/junk folder) and click the link to activate your account.
+              Please check your inbox (and spam folder) and click the link to activate your account.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <Button
               onClick={async () => {
                 const { error } = await supabase.auth.resend({
-                  type: 'signup',
-                  email,
+                  type: "signup",
+                  email: email.trim(),
                 });
-                if (!error) {
-                  alert("Confirmation email resent! Check your inbox.");
+                if (error) {
+                  toast.error(error.message);
                 } else {
-                  alert("Error resending: " + error.message);
+                  toast.success("Confirmation email resent!");
                 }
               }}
-              className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-lg"
+              className="bg-blue-600 hover:bg-blue-700 w-full"
+              disabled={loading}
             >
               Resend Confirmation Email
             </Button>
-            <p className="text-slate-400 text-sm">
-              Didn't receive it? Check your spam folder or try again.
-            </p>
-          </CardContent>
-          <CardFooter className="text-center text-slate-400">
-            <Link to="/login" className="text-blue-400 hover:underline">
+            <Button variant="outline" onClick={() => navigate("/login")} className="w-full">
               Back to Login
-            </Link>
-          </CardFooter>
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -177,16 +193,19 @@ export default function SignupPage() {
 
           {/* Full Name */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-200">Full Name</Label>
+            <Label htmlFor="fullName" className="text-slate-200">
+              Full Name <span className="text-red-400">*</span>
+            </Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <Input
-                id="name"
+                id="fullName"
+                autoComplete="name"
                 placeholder="John Doe"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className={`pl-11 bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
-                  fieldErrors.fullName ? "border-red-500 focus:ring-red-500" : ""
+                className={`pl-11 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
+                  fieldErrors.fullName ? "border-red-500" : ""
                 }`}
               />
             </div>
@@ -200,11 +219,12 @@ export default function SignupPage() {
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <Input
                 id="phone"
-                placeholder="082 123 4567 or +27821234567"
+                autoComplete="tel"
+                placeholder="082 123 4567"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className={`pl-11 bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
-                  fieldErrors.phone ? "border-red-500 focus:ring-red-500" : ""
+                className={`pl-11 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
+                  fieldErrors.phone ? "border-red-500" : ""
                 }`}
               />
             </div>
@@ -213,17 +233,20 @@ export default function SignupPage() {
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-200">Email Address</Label>
+            <Label htmlFor="email" className="text-slate-200">
+              Email Address <span className="text-red-400">*</span>
+            </Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <Input
                 id="email"
-                placeholder="name@example.com"
                 type="email"
+                autoComplete="email"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`pl-11 bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
-                  fieldErrors.email ? "border-red-500 focus:ring-red-500" : ""
+                className={`pl-11 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
+                  fieldErrors.email ? "border-red-500" : ""
                 }`}
               />
             </div>
@@ -268,16 +291,19 @@ export default function SignupPage() {
 
           {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-slate-200">Password</Label>
+            <Label htmlFor="password" className="text-slate-200">
+              Password <span className="text-red-400">*</span>
+            </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`pl-11 pr-11 bg-slate-800/60 border-slate-700 text-white focus:ring-blue-500 ${
-                  fieldErrors.password ? "border-red-500 focus:ring-red-500" : ""
+                className={`pl-11 pr-11 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
+                  fieldErrors.password ? "border-red-500" : ""
                 }`}
               />
               <button
@@ -288,7 +314,7 @@ export default function SignupPage() {
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
-            {fieldErrors.password && <p className="text-red-400 text-xs mt-1">{fieldErrors.password}</p>}
+            {fieldErrors.password && <p className="text-red-400 text-xs">{fieldErrors.password}</p>}
 
             {/* Password Strength Meter */}
             {password && (
@@ -308,16 +334,19 @@ export default function SignupPage() {
 
           {/* Confirm Password */}
           <div className="space-y-2">
-            <Label htmlFor="confirm-password" className="text-slate-200">Confirm Password</Label>
+            <Label htmlFor="confirm-password" className="text-slate-200">
+              Confirm Password <span className="text-red-400">*</span>
+            </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <Input
                 id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`pl-11 pr-11 bg-slate-800/60 border-slate-700 text-white focus:ring-blue-500 ${
-                  fieldErrors.confirmPassword ? "border-red-500 focus:ring-red-500" : ""
+                className={`pl-11 pr-11 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:ring-blue-500 ${
+                  fieldErrors.confirmPassword ? "border-red-500" : ""
                 }`}
               />
               <button
@@ -329,7 +358,7 @@ export default function SignupPage() {
               </button>
             </div>
             {fieldErrors.confirmPassword && (
-              <p className="text-red-400 text-xs mt-1">{fieldErrors.confirmPassword}</p>
+              <p className="text-red-400 text-xs">{fieldErrors.confirmPassword}</p>
             )}
           </div>
 
@@ -355,7 +384,7 @@ export default function SignupPage() {
                   Privacy Policy
                 </a>
               </Label>
-              {fieldErrors.terms && <p className="text-red-400 text-xs mt-1">{fieldErrors.terms}</p>}
+              {fieldErrors.terms && <p className="text-red-400 text-xs">{fieldErrors.terms}</p>}
             </div>
           </div>
 
@@ -371,7 +400,7 @@ export default function SignupPage() {
             <Separator className="bg-slate-700" />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="bg-slate-900 px-4 text-xs text-slate-500 uppercase tracking-wider">
-                or sign up with
+                or continue with
               </span>
             </div>
           </div>

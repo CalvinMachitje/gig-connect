@@ -1,4 +1,4 @@
-// src/pages/Seller/SellerMessagesPage.tsx
+// src/pages/seller/SellerMessagesPage.tsx
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +15,7 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
 type Conversation = {
-  id: string;               // booking_id or chat thread id
+  id: string;
   client_name: string;
   client_avatar?: string;
   last_message: string;
@@ -25,7 +25,6 @@ type Conversation = {
 };
 
 const fetchSellerConversations = async (sellerId: string): Promise<Conversation[]> => {
-  // This is a simplified version — in production you would join bookings + messages + profiles
   const { data, error } = await supabase
     .from("bookings")
     .select(`
@@ -41,14 +40,13 @@ const fetchSellerConversations = async (sellerId: string): Promise<Conversation[
 
   if (error) throw error;
 
-  // Mock last message & unread count (replace with real aggregation query)
   return (data || []).map((booking: any) => ({
     id: booking.id,
     client_name: booking.profiles?.full_name || "Client",
     client_avatar: booking.profiles?.avatar_url,
-    last_message: "New booking request", // ← replace with real last message
+    last_message: "New booking request", // Replace with real last message query later
     last_message_time: new Date(booking.start_time).toLocaleDateString(),
-    unread_count: Math.floor(Math.random() * 5), // ← replace with real count
+    unread_count: Math.floor(Math.random() * 5), // Replace with real count
     status: booking.status,
   }));
 };
@@ -64,7 +62,6 @@ export default function SellerMessagesPage() {
     enabled: !!sellerId,
   });
 
-  // Realtime new message subscription (optimistic unread update)
   useEffect(() => {
     if (!sellerId) return;
 
@@ -82,7 +79,6 @@ export default function SellerMessagesPage() {
           queryClient.setQueryData<Conversation[]>(
             ["seller-conversations", sellerId],
             (old = []) => {
-              // Find matching conversation and increment unread
               return old.map(conv =>
                 conv.id === payload.new.booking_id
                   ? { ...conv, unread_count: (conv.unread_count || 0) + 1 }
@@ -119,7 +115,6 @@ export default function SellerMessagesPage() {
         <h1 className="text-3xl font-bold text-white mb-2">Seller Messages</h1>
         <p className="text-slate-400 mb-6">Manage incoming client messages and bookings</p>
 
-        {/* Search & Filter */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />

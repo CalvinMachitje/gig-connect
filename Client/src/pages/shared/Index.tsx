@@ -1,4 +1,4 @@
-// File: Client/src/pages/Index.tsx
+// File: Client/src/pages/shared/Index.tsx
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Categories from "@/components/Categories";

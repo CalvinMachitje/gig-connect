@@ -1,4 +1,4 @@
-// src/pages/VerificationStatus.tsx
+// src/pages/shared/VerificationStatus.tsx
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";

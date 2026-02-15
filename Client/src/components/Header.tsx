@@ -41,20 +41,6 @@ const Header = () => {
           </NavLink>
 
           <NavLink
-            to="/become-seller"
-            className={({ isActive }) =>
-              cn(
-                "text-sm font-medium transition-colors",
-                isActive
-                  ? "text-blue-400"
-                  : "text-slate-400 hover:text-slate-200"
-              )
-            }
-          >
-            Become a Seller
-          </NavLink>
-
-          <NavLink
             to="/business"
             className={({ isActive }) =>
               cn(
@@ -77,7 +63,7 @@ const Header = () => {
             asChild
             className="text-slate-300 hover:text-white hover:bg-slate-800/50"
           >
-            <Link to="/Login_Page">Sign In</Link>
+            <Link to="/login">Sign In</Link>
           </Button>
 
           <Button
@@ -85,7 +71,7 @@ const Header = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white px-6"
             asChild
           >
-            <Link to="/Signup_Page">Join</Link>
+            <Link to="/signup">Join</Link>
           </Button>
         </div>
 
@@ -121,19 +107,6 @@ const Header = () => {
             </NavLink>
 
             <NavLink
-              to="/become-seller"
-              onClick={closeMenu}
-              className={({ isActive }) =>
-                cn(
-                  "text-base font-medium transition-colors py-2",
-                  isActive ? "text-blue-400" : "text-slate-300 hover:text-slate-100"
-                )
-              }
-            >
-              Become a Seller
-            </NavLink>
-
-            <NavLink
               to="/business"
               onClick={closeMenu}
               className={({ isActive }) =>
@@ -153,7 +126,7 @@ const Header = () => {
                 asChild
                 onClick={closeMenu}
               >
-                <Link to="/Login_Page">Sign In</Link>
+                <Link to="/login">Sign In</Link>
               </Button>
 
               <Button
@@ -161,7 +134,7 @@ const Header = () => {
                 asChild
                 onClick={closeMenu}
               >
-                <Link to="/Signup_Page">Join</Link>
+                <Link to="/signup">Join</Link>
               </Button>
             </div>
           </nav>

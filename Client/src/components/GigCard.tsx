@@ -59,7 +59,7 @@ const GigCard = ({
 
         <div className="pt-3 border-t border-border flex items-center justify-between">
           <span className="text-xs text-muted-foreground uppercase tracking-wide">Starting at</span>
-          <span className="text-lg font-bold text-foreground">${price}</span>
+          <span className="text-lg font-bold text-foreground">R{price}</span>
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+// src/pages/shared/CategoryPage.tsx
 import { ArrowLeft, Heart, Share2, Star, Shield, Lock, Headphones, CheckCircle } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -1,8 +1,8 @@
-// src/pages/Seller/SellerDashboard.tsx
+// src/pages/seller/SellerDashboard.tsx
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Star, Briefcase, Calendar, Users } from "lucide-react";
+import { DollarSign, Star, Briefcase, Calendar, Users, Currency, CreditCard } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { supabase } from "@/lib/supabase";
@@ -19,28 +19,24 @@ type SellerStats = {
 };
 
 const fetchSellerStats = async (userId: string) => {
-  // Active gigs (published)
   const { count: gigsCount } = await supabase
     .from("gigs")
     .select("*", { count: "exact", head: true })
     .eq("seller_id", userId)
     .eq("status", "published");
 
-  // Active bookings
   const { count: activeCount } = await supabase
     .from("bookings")
     .select("*", { count: "exact", head: true })
     .eq("seller_id", userId)
     .in("status", ["pending", "accepted", "in_progress"]);
 
-  // Completed bookings
   const { count: completedCount } = await supabase
     .from("bookings")
     .select("*", { count: "exact", head: true })
     .eq("seller_id", userId)
     .eq("status", "completed");
 
-  // Rating & review count
   const { data: reviews } = await supabase
     .from("reviews")
     .select("rating")
@@ -50,7 +46,6 @@ const fetchSellerStats = async (userId: string) => {
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0;
 
-  // Monthly earnings (Rand)
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
@@ -71,7 +66,7 @@ const fetchSellerStats = async (userId: string) => {
     rating: avgRating,
     reviewCount: reviews?.length || 0,
     monthlyEarnings,
-  } as SellerStats;
+  };
 };
 
 export default function SellerDashboard() {
@@ -113,7 +108,6 @@ export default function SellerDashboard() {
           </div>
         ) : (
           <>
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
               <Card className="bg-slate-900/70 border-slate-700">
                 <CardContent className="p-6 text-center">
@@ -143,7 +137,7 @@ export default function SellerDashboard() {
 
               <Card className="bg-slate-900/70 border-slate-700">
                 <CardContent className="p-6 text-center">
-                  <DollarSign className="h-10 w-10 text-emerald-400 mx-auto mb-4" />
+                  <CreditCard className="h-10 w-10 text-emerald-400 mx-auto mb-4" />
                   <p className="text-4xl font-bold text-emerald-400">
                     R{stats?.monthlyEarnings.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
                   </p>
@@ -152,7 +146,6 @@ export default function SellerDashboard() {
               </Card>
             </div>
 
-            {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="bg-gradient-to-br from-indigo-950 to-blue-950 border-indigo-800">
                 <CardContent className="p-8">
