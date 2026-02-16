@@ -147,18 +147,6 @@ export default function SellerDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-gradient-to-br from-indigo-950 to-blue-950 border-indigo-800">
-                <CardContent className="p-8">
-                  <h3 className="text-2xl font-bold text-white mb-4">Create New Gig</h3>
-                  <p className="text-slate-300 mb-6">List a new service and start earning today</p>
-                  <Link to="/create-gig">
-                    <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 w-full">
-                      Create Gig
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-
               <Card className="bg-slate-900/70 border-slate-700">
                 <CardContent className="p-8">
                   <h3 className="text-2xl font-bold text-white mb-4">Manage Availability</h3>

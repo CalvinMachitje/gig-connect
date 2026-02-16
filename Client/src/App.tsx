@@ -10,13 +10,12 @@ import {
   Route,
   Navigate,
   Outlet,
-  useLocation,
 } from "react-router-dom";
 
 // Pages
 import Index from "./pages/shared/Index";
 import LoginPage from "./pages/Auth/LoginPage";
-import SignupPage from "./pages/Auth/SignupPage"; 
+import SignupPage from "./pages/Auth/SignupPage";
 import ForgotPassword from "./pages/shared/ForgotPassword";
 import ResetPassword from "./pages/shared/ResetPassword";
 import NotFound from "./pages/shared/NotFound";
@@ -32,11 +31,14 @@ import SellerProfile from "./pages/Seller/SellerProfile";
 import CreateGig from "./pages/Seller/CreateGig";
 import BookingPage from "./pages/shared/BookingPage";
 import CategoryPage from "./pages/shared/CategoryPage";
-import ManageBookings from "./pages/shared/ManageBookings";
 import BuyerMessagePage from "./pages/Buyer/BuyerMessagePage";
 import VerificationStatus from "./pages/shared/VerificationStatus";
 import ReviewBooking from "./pages/shared/ReviewBooking";
-import SellerMessagesPage from "./pages/Seller/SellerMessagesPage"; 
+import SellerMessagesPage from "./pages/Seller/SellerMessagesPage";
+import MyGigs from "./pages/Seller/MyGigs";
+import EditGig from "./pages/Seller/EditGig";
+import MyBookings from "./pages/Buyer/MyBookings";
+import SellerBookings from "./pages/Seller/SellerBookings";
 
 // Supabase Auth & Layout
 import { useAuth } from "@/context/AuthContext";
@@ -80,26 +82,27 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 // ────────────────────────────────────────────────
+// Buyer-only Protected Route
+// ────────────────────────────────────────────────
+const BuyerProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session, userRole, loading } = useAuth();
+
+  if (loading) return <div className="flex items-center justify-center min-h-screen text-white bg-slate-950">Loading...</div>;
+  if (!session) return <Navigate to="/login" replace />;
+  if (userRole !== "buyer") return <Navigate to="/dashboard" replace />;
+
+  return <>{children}</>;
+};
+
+// ────────────────────────────────────────────────
 // Seller-only Protected Route
 // ────────────────────────────────────────────────
 const SellerProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, userRole, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-white bg-slate-950">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (userRole !== "seller") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (loading) return <div className="flex items-center justify-center min-h-screen text-white bg-slate-950">Loading...</div>;
+  if (!session) return <Navigate to="/login" replace />;
+  if (userRole !== "seller") return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 };
@@ -142,26 +145,36 @@ const App = () => {
               {/* Dashboard – switches based on role */}
               <Route path="/dashboard" element={<DashboardSwitcher />} />
 
-              {/* Shared / buyer-leaning pages */}
+              {/* Shared / general pages */}
               <Route path="/gigs" element={<Gigs />} />
               <Route path="/gig/:id" element={<GigDetail />} />
-              <Route path="/buyerprofile/:id" element={<BuyerProfile />} />
+              <Route path="/profile/:id" element={<BuyerProfile />} />
+              <Route path="/seller-profile/:id" element={<SellerProfile />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
-              <Route path="/bookings" element={<ManageBookings />} />
-              <Route path="/messages/buyer" element={<BuyerMessagePage />} />
               <Route path="/verification/:id" element={<VerificationStatus />} />
               <Route path="/review-booking/:id" element={<ReviewBooking />} />
               <Route path="/booking/:id" element={<BookingPage />} />
-
-              {/* Settings (any user) */}
               <Route path="/settings" element={<Settings />} />
+
+              {/* Messages */}
+              <Route path="/messages/buyer" element={<BuyerMessagePage />} />
+              <Route path="/messages/seller" element={<SellerMessagesPage />} />
+
+              {/* Bookings */}
+              <Route path="/my-bookings" element={<MyBookings />} />
+            </Route>
+
+            {/* Buyer-only protected routes */}
+            <Route element={<BuyerProtectedRoute><ProtectedLayout /></BuyerProtectedRoute>}>
+              {/* Buyer-specific pages can go here if needed */}
             </Route>
 
             {/* Seller-only protected routes */}
             <Route element={<SellerProtectedRoute><ProtectedLayout /></SellerProtectedRoute>}>
               <Route path="/create-gig" element={<CreateGig />} />
-              <Route path="/messages/seller" element={<SellerMessagesPage />} />
-              <Route path="/sellerprofile/:id" element={<SellerProfile />} />
+              <Route path="/my-gigs" element={<MyGigs />} />
+              <Route path="/edit-gig/:id" element={<EditGig />} />
+              <Route path="/seller-bookings" element={<SellerBookings />} />
             </Route>
 
             {/* 404 */}

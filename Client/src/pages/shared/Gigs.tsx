@@ -1,19 +1,25 @@
 // src/pages/shared/Gigs.tsx
-import { useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Briefcase, Star, RefreshCw, Search as SearchIcon, X, ChevronDown } from "lucide-react";
+import { Briefcase, Star, RefreshCw, Search as SearchIcon, X } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useInView } from "react-intersection-observer";
+import { toast } from "sonner";
 
 type Gig = {
   id: string;
@@ -34,13 +40,12 @@ const fetchGigs = async ({ pageParam = 0 }: { pageParam?: number }) => {
   const from = pageParam * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const { data, error, count } = await supabase
+  const { data: rawData, error, count } = await supabase
     .from("gigs")
     .select(
       `
-      id, title, description, price, category, created_at,
-      seller:profiles!seller_id (full_name as seller_name, rating, review_count),
-      image_url
+      id, title, description, price, category, created_at, image_url,
+      profiles!seller_id (full_name, rating, review_count)
     `,
       { count: "exact" }
     )
@@ -48,20 +53,36 @@ const fetchGigs = async ({ pageParam = 0 }: { pageParam?: number }) => {
     .range(from, to)
     .order("created_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase fetch error:", error);
+    throw error;
+  }
+
+  // Flatten nested profiles object
+  const data = rawData?.map((gig: any) => ({
+    ...gig,
+    seller_name: gig.profiles?.full_name || "Unknown Seller",
+    rating: gig.profiles?.rating || 0,
+    review_count: gig.profiles?.review_count || 0,
+  })) || [];
+
+  console.log("Fetched gigs page:", {
+    page: pageParam,
+    returned: data.length,
+    totalCount: count,
+    firstFew: data.slice(0, 2).map(g => ({ id: g.id, title: g.title }))
+  });
 
   return {
-    gigs: (data || []) as unknown as Gig[],
-    nextPage: data && data.length === PAGE_SIZE ? pageParam + 1 : null,
+    gigs: data as Gig[],
+    nextPage: data.length === PAGE_SIZE ? pageParam + 1 : null,
     totalCount: count ?? 0,
   };
 };
 
 export default function Gigs() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Infinite Query (pagination)
   const {
     data,
     isLoading,
@@ -75,10 +96,17 @@ export default function Gigs() {
     queryFn: fetchGigs,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 5 * 60 * 1000,
   });
 
-  const allGigs = useMemo(() => data?.pages.flatMap((p) => p.gigs) ?? [], [data]);
+  const allGigs = useMemo(() => data?.pages.flatMap(p => p.gigs) ?? [], [data]);
+
+  console.log("Current state:", {
+    isLoading,
+    allGigsCount: allGigs.length,
+    processedCount: allGigs.length, // will be same until filters added back
+    hasData: allGigs.length > 0
+  });
 
   // ────────────────────────────────────────────────
   // Search, Filter & Sort State
@@ -88,32 +116,29 @@ export default function Gigs() {
   const [sortOption, setSortOption] = useState<"newest" | "price-low" | "price-high" | "rating-high">("newest");
 
   const categories = useMemo(() => {
-    return Array.from(new Set(allGigs.map((gig) => gig.category)));
+    return Array.from(new Set(allGigs.map(gig => gig.category)));
   }, [allGigs]);
 
   // ────────────────────────────────────────────────
-  // Filtered & Sorted Gigs (client-side)
+  // Filtered & Sorted Gigs
   // ────────────────────────────────────────────────
   const processedGigs = useMemo(() => {
     let result = [...allGigs];
 
-    // 1. Search filter
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(
-        (gig) =>
+        gig =>
           gig.title.toLowerCase().includes(term) ||
           gig.description.toLowerCase().includes(term) ||
           gig.seller_name?.toLowerCase().includes(term)
       );
     }
 
-    // 2. Category filter
     if (selectedCategory) {
-      result = result.filter((gig) => gig.category === selectedCategory);
+      result = result.filter(gig => gig.category === selectedCategory);
     }
 
-    // 3. Sorting
     switch (sortOption) {
       case "price-low":
         result.sort((a, b) => a.price - b.price);
@@ -124,8 +149,7 @@ export default function Gigs() {
       case "rating-high":
         result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
-      case "newest":
-      default:
+      default: // newest
         result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
     }
@@ -134,7 +158,7 @@ export default function Gigs() {
   }, [allGigs, searchTerm, selectedCategory, sortOption]);
 
   // ────────────────────────────────────────────────
-  // Infinite Scroll Trigger
+  // Infinite Scroll
   // ────────────────────────────────────────────────
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
@@ -148,14 +172,31 @@ export default function Gigs() {
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // ────────────────────────────────────────────────
-  // Realtime: new gig appears instantly
+  // Real-time updates
   // ────────────────────────────────────────────────
   useEffect(() => {
     const channel = supabase
-      .channel("public:gigs")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "gigs" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["gigs"] });
-      })
+      .channel("public:gigs-published")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "gigs",
+          filter: "status=eq.published",
+        },
+        (payload) => {
+          console.log("Realtime gig change:", payload);
+          if (payload.eventType === "INSERT") {
+            toast.success("New gig published!");
+          } else if (payload.eventType === "UPDATE") {
+            toast.info("A gig was updated");
+          } else if (payload.eventType === "DELETE") {
+            toast.info("A gig was removed");
+          }
+          queryClient.invalidateQueries({ queryKey: ["gigs"] });
+        }
+      )
       .subscribe();
 
     return () => {
@@ -167,10 +208,11 @@ export default function Gigs() {
   // Render
   // ────────────────────────────────────────────────
   if (error) {
+    console.error("Gigs query failed:", error);
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-red-400 p-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900">
         <p className="text-xl mb-4">Failed to load gigs</p>
-        <p className="text-slate-400 mb-6">{(error as Error).message}</p>
+        <p className="text-slate-400 mb-6">{error.message}</p>
         <Button onClick={() => refetch()} className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
           <RefreshCw className="h-4 w-4" /> Retry
         </Button>
@@ -183,9 +225,8 @@ export default function Gigs() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-6">Available Gigs</h1>
 
-        {/* Controls: Search + Sort + Category + Clear */}
+        {/* Controls */}
         <div className="mb-8 space-y-4">
-          {/* Search */}
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
@@ -196,9 +237,7 @@ export default function Gigs() {
             />
           </div>
 
-          {/* Sort & Category Filter */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            {/* Sort Dropdown */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-wrap">
             <Select value={sortOption} onValueChange={(v) => setSortOption(v as any)}>
               <SelectTrigger className="w-full sm:w-48 bg-slate-900/60 border-slate-700 text-white">
                 <SelectValue placeholder="Sort by..." />
@@ -211,7 +250,6 @@ export default function Gigs() {
               </SelectContent>
             </Select>
 
-            {/* Category Badges */}
             {categories.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 <Badge
@@ -225,7 +263,7 @@ export default function Gigs() {
                   All
                 </Badge>
 
-                {categories.map((cat) => (
+                {categories.map(cat => (
                   <Badge
                     key={cat}
                     variant={selectedCategory === cat ? "default" : "outline"}
@@ -241,7 +279,6 @@ export default function Gigs() {
               </div>
             )}
 
-            {/* Clear Filters */}
             {(searchTerm || selectedCategory) && (
               <Button
                 variant="ghost"
@@ -259,7 +296,7 @@ export default function Gigs() {
           </div>
         </div>
 
-        {/* Gigs Grid */}
+        {/* Content */}
         {isLoading && allGigs.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(9)].map((_, i) => (
@@ -269,15 +306,19 @@ export default function Gigs() {
         ) : processedGigs.length === 0 ? (
           <div className="text-center py-16 text-slate-400 bg-slate-900/40 rounded-xl border border-slate-800">
             <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-xl font-medium">No matching gigs found</p>
+            <p className="text-xl font-medium">
+              {isLoading ? "Loading available gigs..." : "No gigs found"}
+            </p>
             <p className="mt-2">
-              Try adjusting your search, sort, or category filters.
+              {isLoading
+                ? "Fetching services from our assistants..."
+                : "There are currently no published gigs matching your filters."}
             </p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {processedGigs.map((gig) => (
+              {processedGigs.map(gig => (
                 <Card
                   key={gig.id}
                   className="bg-slate-900/70 border-slate-700 hover:border-blue-600 hover:shadow-lg hover:shadow-blue-950/30 transition-all duration-300 overflow-hidden group"
@@ -307,7 +348,7 @@ export default function Gigs() {
                       <div className="flex items-center gap-2">
                         <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                         <span className="text-slate-300">
-                          {gig.rating?.toFixed(1) || "New"} ({gig.review_count || 0})
+                          {gig.rating.toFixed(1)} ({gig.review_count})
                         </span>
                       </div>
                       <span className="text-emerald-400 font-medium">
@@ -315,7 +356,7 @@ export default function Gigs() {
                       </span>
                     </div>
                     <p className="text-slate-400 text-sm">
-                      by {gig.seller_name || "Anonymous"}
+                      by {gig.seller_name}
                     </p>
                   </CardContent>
                   <CardFooter className="p-6 pt-0">
@@ -329,7 +370,6 @@ export default function Gigs() {
               ))}
             </div>
 
-            {/* Load more trigger */}
             {hasNextPage && (
               <div ref={loadMoreRef} className="py-8 flex justify-center">
                 {isFetchingNextPage ? (

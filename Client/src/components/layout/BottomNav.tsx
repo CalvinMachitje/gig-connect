@@ -99,15 +99,15 @@ export default function BottomNav() {
 
   const buyerItems: NavItem[] = [
     {
-      icon: Search,
-      label: "Search",
+      icon: Briefcase,
+      label: "Gigs",
       path: "/gigs",
       exact: true,
     },
     {
       icon: Calendar,
       label: "Bookings",
-      path: "/bookings",
+      path: "/my-bookings",
       exact: true,
     },
   ];
@@ -116,13 +116,13 @@ export default function BottomNav() {
     {
       icon: Briefcase,
       label: "Gigs",
-      path: "/gigs",
+      path: "/my-gigs",
       exact: true,
     },
     {
       icon: ClipboardList,
-      label: "Manage",
-      path: "/bookings",
+      label: "Bookings",
+      path: "/seller-bookings",
       exact: true,
     },
   ];
@@ -140,7 +140,7 @@ export default function BottomNav() {
           {
             icon: User,
             label: "Profile",
-            path: user?.id ? `/buyerprofile/${user.id}` : "#",
+            path: user?.id ? `/profile/${user.id}` : "#",
             exact: true,
           },
         ]
@@ -155,7 +155,7 @@ export default function BottomNav() {
           {
             icon: User,
             label: "Profile",
-            path: user?.id ? `/sellerprofile/${user.id}` : "#",
+            path: user?.id ? `/seller-profile/${user.id}` : "#",
             exact: true,
           },
         ];
@@ -184,13 +184,13 @@ export default function BottomNav() {
   ];
 
   // ────────────────────────────────────────────────
-  // Loading state (skeleton nav while role is loading)
+  // Loading state (skeleton nav while role/user is loading)
   // ────────────────────────────────────────────────
-  if (loading || !userRole) {
+  if (loading || !userRole || !user?.id) {
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 md:hidden">
         <div className="flex items-center justify-around h-16 px-2">
-          {[...Array(5)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <div key={i} className="flex flex-col items-center">
               <div className="h-8 w-8 bg-slate-700 rounded-full animate-pulse mb-1" />
               <div className="h-3 w-12 bg-slate-700 rounded animate-pulse" />
