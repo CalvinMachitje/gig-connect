@@ -1,14 +1,25 @@
-// src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from "sonner";
 
+type SignUpParams = {
+  email: string;
+  password: string;
+  options?: {
+    data?: {
+      full_name?: string;
+      phone?: string | null;
+      role?: 'buyer' | 'seller';
+    };
+  };
+};
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (params: { email: string; password: string; options?: { data?: { role?: 'buyer' | 'seller' } } }) => Promise<{ data: any; error: any }>;
+  signUp: (params: SignUpParams) => Promise<{ data: any; error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   userRole: 'buyer' | 'seller' | null;
@@ -22,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<'buyer' | 'seller' | null>(null);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
@@ -32,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) {
@@ -45,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Real-time profile role sync (if role changes in DB)
   useEffect(() => {
     if (!session?.user?.id) return;
 
@@ -84,19 +92,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserRole((data?.role as 'buyer' | 'seller') ?? 'buyer');
     } catch (err) {
       console.error("Role fetch error:", err);
-      setUserRole('buyer'); // fallback
+      setUserRole('buyer');
     }
   }
 
-  const signUp = async ({ email, password, options }: { email: string; password: string; options?: { data?: { role?: 'buyer' | 'seller' } } }) => {
+  const signUp = async ({ email, password, options }: SignUpParams) => {
     try {
       const result = await supabase.auth.signUp({
         email,
         password,
         options: {
-          ...options,
           data: {
-            role: options?.data?.role ?? 'buyer', // default to buyer if not specified
+            full_name: options?.data?.full_name ?? 'New User',
+            phone: options?.data?.phone ?? null,
+            role: options?.data?.role ?? 'buyer',
           },
         },
       });
@@ -105,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast.success("Sign up successful! Check your email to confirm.");
       return result;
+
     } catch (err: any) {
       toast.error("Sign up failed: " + (err.message || "Unknown error"));
       return { data: null, error: err };
@@ -118,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast.success("Logged in successfully");
       return { error: null };
+
     } catch (err: any) {
       toast.error("Login failed: " + (err.message || "Invalid credentials"));
       return { error: err };
